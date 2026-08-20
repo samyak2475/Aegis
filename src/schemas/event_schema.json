@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aegis Event",
+  "description": "Canonical event representation used throughout the Aegis system.",
+  "type": "object",
+  "required": [
+    "event_id",
+    "timestamp",
+    "source",
+    "event_type",
+    "severity",
+    "data"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique identifier for the event."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time at which the event occurred."
+    },
+    "source": {
+      "type": "string",
+      "description": "System that produced the event.",
+      "enum": [
+        "sales",
+        "support",
+        "finance",
+        "marketing",
+        "github",
+        "email",
+        "crm",
+        "system",
+        "api"
+      ]
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Type of business event."
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "entity": {
+      "type": "object",
+      "description": "Business entity associated with the event.",
+      "additionalProperties": true
+    },
+    "data": {
+      "type": "object",
+      "description": "Raw or normalized information associated with the event.",
+      "additionalProperties": true
+    },
+    "context": {
+      "type": "object",
+      "description": "Additional contextual information useful for investigation.",
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "description": "System metadata.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -105,3 +105,26 @@ Evaluation
 Memory
  ↓
 Future decisions
+
+# Aegis Event Architecture
+
+## Purpose
+
+The Aegis Event is the canonical representation of something that
+happens inside or around a business system and may require monitoring,
+investigation, decision making, or action.
+
+## Event Flow
+
+```text
+External System
+      ↓
+Source Adapter
+      ↓
+Event Normalization
+      ↓
+Aegis Event
+      ↓
+Event Router
+      ↓
+Investigation
