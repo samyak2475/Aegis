@@ -1,0 +1,159 @@
+{
+  "name": "Aegis — Event Ingestion v0.1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4e5f59f0-c6f0-4260-89fa-d77aea67ebe4",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      event_id: \"evt_demo_001\",\n\n      timestamp: new Date().toISOString(),\n\n      source: \"sales\",\n\n      event_type: \"revenue_drop\",\n\n      severity: \"high\",\n\n      entity: {\n        type: \"business\",\n        id: \"demo_company\"\n      },\n\n      data: {\n        current_revenue: 84000,\n        previous_revenue: 121000,\n        percentage_change: -30.58\n      },\n\n      context: {\n        period: \"daily\",\n        region: \"India\"\n      },\n\n      metadata: {\n        environment: \"development\",\n        generated_by: \"aegis-event-ingestion\"\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "340d7ac0-dec4-4c41-a620-f9ec95549772",
+      "name": "Generate Business Event"
+    },
+    {
+      "parameters": {
+        "jsCode": "const requiredFields = [\n  \"event_id\",\n  \"timestamp\",\n  \"source\",\n  \"event_type\",\n  \"severity\",\n  \"data\"\n];\n\nconst allowedSources = [\n  \"sales\",\n  \"support\",\n  \"finance\",\n  \"marketing\",\n  \"github\",\n  \"email\",\n  \"crm\",\n  \"system\",\n  \"api\"\n];\n\nconst allowedSeverities = [\n  \"info\",\n  \"low\",\n  \"medium\",\n  \"high\",\n  \"critical\"\n];\n\nconst events = $input.all();\n\nreturn events.map((item) => {\n  const event = item.json;\n\n  const errors = [];\n\n  // Check required fields\n  for (const field of requiredFields) {\n    if (\n      event[field] === undefined ||\n      event[field] === null ||\n      event[field] === \"\"\n    ) {\n      errors.push(`Missing required field: ${field}`);\n    }\n  }\n\n  // Validate source\n  if (\n    event.source &&\n    !allowedSources.includes(event.source)\n  ) {\n    errors.push(`Invalid source: ${event.source}`);\n  }\n\n  // Validate severity\n  if (\n    event.severity &&\n    !allowedSeverities.includes(event.severity)\n  ) {\n    errors.push(`Invalid severity: ${event.severity}`);\n  }\n\n  // Validate data\n  if (\n    event.data !== undefined &&\n    (typeof event.data !== \"object\" || Array.isArray(event.data))\n  ) {\n    errors.push(\"Field 'data' must be an object\");\n  }\n\n  const valid = errors.length === 0;\n\n  return {\n    json: {\n      ...event,\n\n      validation: {\n        valid,\n        errors,\n        validated_at: new Date().toISOString()\n      }\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "c0433793-1189-46a1-9abf-af9acffd7a80",
+      "name": "Validate Aegis Event"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "98d2880a-29d1-4b97-a6ec-6a108d838271",
+              "leftValue": "={{ $json.validation.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "73c59744-30bd-4e8b-bbce-385527d92672",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "0e1e2234-e356-4da8-9819-65f2048378ea",
+      "name": "Event Valid?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({\n  json: {\n    ...item.json,\n    status: \"accepted\"\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "6016251d-f4f2-4850-8210-286fc67f313c",
+      "name": "Event Accepted"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Generate Business Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Business Event": {
+      "main": [
+        [
+          {
+            "node": "Validate Aegis Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Aegis Event": {
+      "main": [
+        [
+          {
+            "node": "Event Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Valid?": {
+      "main": [
+        [
+          {
+            "node": "Event Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "94275367-f883-40a0-bf20-0dcf6d761f6d",
+  "meta": {
+    "instanceId": "82e399089456ff59706950df580f876bb2a1f50e67c1a58bc112916a9bc9b524"
+  },
+  "nodeGroups": [],
+  "id": "l1jd103hGDRStAQu",
+  "tags": []
+}
