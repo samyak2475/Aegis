@@ -156,3 +156,9 @@ Conclusion
 Confidence
  ↓
 Decision
+
+
+the number of AI agents has been increased,
+1. sales analyst
+2. critic 
+2. re analyst
