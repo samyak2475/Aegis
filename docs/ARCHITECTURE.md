@@ -128,3 +128,31 @@ Aegis Event
 Event Router
       ↓
 Investigation
+
+# Aegis Investigation Architecture
+
+## Purpose
+
+An investigation is a structured process used by Aegis to determine
+the likely causes of an important business event.
+
+## Investigation Lifecycle
+
+```text
+Event
+ ↓
+Investigation Created
+ ↓
+Evidence Collection
+ ↓
+Evidence Analysis
+ ↓
+Hypothesis Generation
+ ↓
+Hypothesis Verification
+ ↓
+Conclusion
+ ↓
+Confidence
+ ↓
+Decision

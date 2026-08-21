@@ -1,0 +1,31 @@
+{
+  "sales": {
+    "historical_revenue": [
+      118000,
+      122000,
+      119000,
+      124000,
+      121000,
+      123000,
+      121000,
+      84000
+    ]
+  },
+
+  "payments": {
+    "previous_failure_count": 17,
+    "current_failure_count": 63
+  },
+
+  "support": {
+    "previous_payment_tickets": 8,
+    "current_payment_tickets": 37
+  },
+
+  "deployments": [
+    {
+      "name": "Checkout v2",
+      "deployed_at": "2026-08-19T10:00:00Z"
+    }
+  ]
+}
