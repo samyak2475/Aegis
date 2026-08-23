@@ -162,3 +162,16 @@ the number of AI agents has been increased,
 1. sales analyst
 2. critic 
 2. re analyst
+
+AUTHORITATIVE AEGIS CONTEXT:
+
+{{ JSON.stringify($json.aegis_context) }}
+
+REANALYSIS INSTRUCTION:
+
+{{ $json.reanalysis_instruction }}
+
+Revise the previous analysis using the critic's feedback while preserving all authoritative evidence and deterministic calculations.
+
+
+the agenst have been under preforming
