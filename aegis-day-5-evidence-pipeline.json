@@ -1,0 +1,1426 @@
+{
+  "name": "Aegis — Event Ingestion v0.1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        0
+      ],
+      "id": "4e5f59f0-c6f0-4260-89fa-d77aea67ebe4",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      event_id: \"evt_demo_001\",\n\n      timestamp: new Date().toISOString(),\n\n      source: \"sales\",\n\n      event_type: \"revenue_drop\",\n\n      severity: \"high\",\n\n      entity: {\n        type: \"business\",\n        id: \"demo_company\"\n      },\n\n      data: {\n        current_revenue: 84000,\n        previous_revenue: 121000,\n        percentage_change: -30.58\n      },\n\n      context: {\n        period: \"daily\",\n        region: \"India\"\n      },\n\n      metadata: {\n        environment: \"development\",\n        generated_by: \"aegis-event-ingestion\"\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "340d7ac0-dec4-4c41-a620-f9ec95549772",
+      "name": "Generate Business Event"
+    },
+    {
+      "parameters": {
+        "jsCode": "const requiredFields = [\n  \"event_id\",\n  \"timestamp\",\n  \"source\",\n  \"event_type\",\n  \"severity\",\n  \"data\"\n];\n\nconst allowedSources = [\n  \"sales\",\n  \"support\",\n  \"finance\",\n  \"marketing\",\n  \"github\",\n  \"email\",\n  \"crm\",\n  \"system\",\n  \"api\"\n];\n\nconst allowedSeverities = [\n  \"info\",\n  \"low\",\n  \"medium\",\n  \"high\",\n  \"critical\"\n];\n\nconst events = $input.all();\n\nreturn events.map((item) => {\n  const event = item.json;\n\n  const errors = [];\n\n  // Check required fields\n  for (const field of requiredFields) {\n    if (\n      event[field] === undefined ||\n      event[field] === null ||\n      event[field] === \"\"\n    ) {\n      errors.push(`Missing required field: ${field}`);\n    }\n  }\n\n  // Validate source\n  if (\n    event.source &&\n    !allowedSources.includes(event.source)\n  ) {\n    errors.push(`Invalid source: ${event.source}`);\n  }\n\n  // Validate severity\n  if (\n    event.severity &&\n    !allowedSeverities.includes(event.severity)\n  ) {\n    errors.push(`Invalid severity: ${event.severity}`);\n  }\n\n  // Validate data\n  if (\n    event.data !== undefined &&\n    (typeof event.data !== \"object\" || Array.isArray(event.data))\n  ) {\n    errors.push(\"Field 'data' must be an object\");\n  }\n\n  const valid = errors.length === 0;\n\n  return {\n    json: {\n      ...event,\n\n      validation: {\n        valid,\n        errors,\n        validated_at: new Date().toISOString()\n      }\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        0
+      ],
+      "id": "c0433793-1189-46a1-9abf-af9acffd7a80",
+      "name": "Validate Aegis Event"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "98d2880a-29d1-4b97-a6ec-6a108d838271",
+              "leftValue": "={{ $json.validation.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "73c59744-30bd-4e8b-bbce-385527d92672",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        272,
+        0
+      ],
+      "id": "0e1e2234-e356-4da8-9819-65f2048378ea",
+      "name": "Event Valid?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({\n  json: {\n    ...item.json,\n    status: \"accepted\"\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -16
+      ],
+      "id": "6016251d-f4f2-4850-8210-286fc67f313c",
+      "name": "Event Accepted"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.source }}",
+                    "rightValue": "sales",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "289bd551-3e05-4da6-b2d1-21b53131f0bb"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "46b663b0-0fe6-4472-9a6b-a10686eb0fb6",
+                    "leftValue": "={{ $json.source}}",
+                    "rightValue": "support",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "07564cb0-8d20-40fd-a86c-b7d1bc269a2d",
+                    "leftValue": "={{ $json.source }}",
+                    "rightValue": "finance",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "46ba9492-c288-44ef-9d52-84b74c939f88",
+                    "leftValue": "{{ $json.source }}",
+                    "rightValue": "github",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        928,
+        -48
+      ],
+      "id": "2af6eab2-30fa-4514-a412-e1cdbc243b59",
+      "name": "Event Router"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "fVmVCba9SzUPPKbB",
+          "mode": "list",
+          "cachedResultName": "aegis_events",
+          "cachedResultUrl": "/projects/usjv7ADw9lcusTFW/datatables/fVmVCba9SzUPPKbB"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.event_id }}",
+            "timestamp": "={{ $json.timestamp }}",
+            "source": "={{ $json.source }}",
+            "event_type": "={{ $json.event_type }}",
+            "severity": "={{ $json.severity }}",
+            "status": "={{ $json.status }}",
+            "event_data": "={{ JSON.stringify($json) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "event_data",
+              "displayName": "event_data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        -16
+      ],
+      "id": "c077ea4f-7a3f-4c59-863c-ca4b3adc7024",
+      "name": "Store Aegis Event"
+    },
+    {
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\n\nreturn [\n  {\n    json: {\n      investigation_id: `inv_${event.event_id}`,\n\n      event_id: event.event_id,\n\n      investigation_type: \"sales_anomaly\",\n\n      objective: \"Determine the likely causes of the detected sales anomaly.\",\n\n      event: event,\n\n      investigation_status: \"initialized\",\n\n      evidence_required: [\n        \"historical_revenue\",\n        \"payment_failures\",\n        \"support_tickets\",\n        \"recent_deployments\",\n        \"customer_segments\"\n      ],\n\n      hypotheses: [],\n\n      findings: [],\n\n      confidence: null,\n\n      created_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        -96
+      ],
+      "id": "54e387da-1299-4b3e-9ae8-57e64cdb3295",
+      "name": "Sales Investigation"
+    },
+    {
+      "parameters": {
+        "jsCode": "const investigation = $input.first().json;\n\nconst evidence = {\n  historical_revenue: [\n    118000,\n    122000,\n    119000,\n    124000,\n    121000,\n    123000,\n    121000,\n    84000\n  ],\n\n  payments: {\n    previous_failure_count: 17,\n    current_failure_count: 63\n  },\n\n  support: {\n    previous_payment_tickets: 8,\n    current_payment_tickets: 37\n  },\n\n  deployments: [\n    {\n      name: \"Checkout v2\",\n      deployed_at: \"2026-08-19T10:00:00Z\"\n    }\n  ]\n};\n\nreturn [\n  {\n    json: {\n      ...investigation,\n\n      evidence,\n\n      evidence_status: \"collected\",\n\n      evidence_collected_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -96
+      ],
+      "id": "eea52a69-c842-42c0-8202-c4b5dc8ec517",
+      "name": "Collect Sales Evidence"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Investigate the supplied Aegis business anomaly.\n\nAUTHORITATIVE EVENT AND EVIDENCE:\n\n{{ JSON.stringify($json, null, 2) }}\n\nDETERMINISTIC METRICS:\n\n{{ JSON.stringify($json.metrics, null, 2) }}\n\nINDEPENDENT INVESTIGATIONS:\n\n{{ JSON.stringify($json.investigation_results, null, 2) }}\n\nUse the independent investigations as additional analytical evidence.\n\nDo not blindly trust investigator conclusions.\n\nPreserve the authoritative deterministic metrics exactly.\n\nProduce the required structured investigation.\n\nFINAL RESPONSE SIZE LIMIT:\n\nKeep the JSON concise.\n\nMaximum:\n5 observed facts\n4 evidence analysis items\n3 hypotheses\n6 missing evidence items\n6 recommended next steps\n\nDo not repeat the supplied evidence unnecessarily.\n\nReturn the JSON completely.\n\nIMPORTANT OUTPUT RULES:\n\nReturn ONLY valid JSON.\n\nDo not use Markdown.\nDo not use code fences.\nDo not write an explanation before or after the JSON.\n\nUse exactly this structure:\n\n{\n  \"observations\": [],\n  \"evidence_analysis\": [],\n  \"hypotheses\": [],\n  \"missing_evidence\": [],\n  \"next_steps\": [],\n  \"overall_evidence_confidence\": 0.0\n}\n\nEvery array item must be a string.\noverall_evidence_confidence must be a number between 0 and 1.\n\nDo not invent evidence.\nDo not present hypotheses as confirmed diagnoses.",
+        "options": {
+          "systemMessage": "You are the Aegis Sales AI Analyst.\n\nYou receive a structured evidence synthesis produced by the Aegis Evidence Synthesizer.\n\nYour job is to analyze the evidence and produce a structured investigation assessment.\n\nYou MAY:\n- summarize observed facts\n- analyze evidence\n- identify hypotheses\n- assess relationships between evidence\n- identify missing evidence\n- recommend next investigative steps\n\nYou MUST NOT:\n- invent evidence\n- invent numbers\n- treat correlation as causation\n- present a hypothesis as a confirmed diagnosis\n- claim evidence exists when it is missing\n- ignore conflicting or uncertain evidence\n- output Markdown\n- output explanations outside the JSON object\n\nReturn ONLY valid JSON.\n\nYour entire response must be one JSON object.\n\nUse exactly this structure:\n\n{\n  \"observations\": [],\n  \"evidence_analysis\": [],\n  \"hypotheses\": [],\n  \"missing_evidence\": [],\n  \"next_steps\": [],\n  \"overall_evidence_confidence\": 0.0\n}\n\nRules:\n\n- observations must contain only evidence-supported observations.\n- evidence_analysis must contain evidence-supported analysis.\n- hypotheses must be explicitly presented as hypotheses, not confirmed causes.\n- missing_evidence must contain evidence gaps identified by the synthesis.\n- next_steps must address important evidence gaps or relationships requiring investigation.\n- overall_evidence_confidence must be a number between 0 and 1.\n- Do not calculate confidence from unsupported assumptions.\n- Do not add additional top-level fields.\n- Do not use Markdown.\n- Do not use code fences.\n- Do not write introductory or concluding text.\n- Do not say \"Here is the JSON\".\n- The first character of your response must be {.\n- The last character of your response must be }."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2528,
+        -144
+      ],
+      "id": "f403276d-e95b-4601-aea5-8dd58b1bb2b3",
+      "name": "Sales AI Analyst"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        2448,
+        32
+      ],
+      "id": "12c6b295-8d60-4fd7-a6fb-d7068fa58679",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "WEp1n6IdFVFDVs4F",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// Get the raw Analyst response\nconst raw = item.output;\n\nif (!raw || typeof raw !== 'string') {\n  throw new Error('Sales AI Analyst returned no output.');\n}\n\n// Remove accidental markdown fences if the model adds them\nconst cleaned = raw\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(\n    `Sales AI Analyst returned invalid JSON: ${error.message}`\n  );\n}\n\n// Validate the fields expected from the NEW Analyst output\nconst requiredFields = [\n  'observations',\n  'evidence_analysis',\n  'hypotheses',\n  'missing_evidence',\n  'next_steps',\n  'overall_evidence_confidence'\n];\n\nfor (const field of requiredFields) {\n  if (!(field in parsed)) {\n    throw new Error(\n      `Sales AI Analyst output is missing required field \"${field}\".`\n    );\n  }\n}\n\n// Validate array fields\nconst arrayFields = [\n  'observations',\n  'evidence_analysis',\n  'hypotheses',\n  'missing_evidence',\n  'next_steps'\n];\n\nfor (const field of arrayFields) {\n  if (!Array.isArray(parsed[field])) {\n    throw new Error(\n      `Sales AI Analyst field \"${field}\" must be an array.`\n    );\n  }\n}\n\n// Validate confidence\nconst confidence = Number(parsed.overall_evidence_confidence);\n\nif (\n  !Number.isFinite(confidence) ||\n  confidence < 0 ||\n  confidence > 1\n) {\n  throw new Error(\n    'overall_evidence_confidence must be a number between 0 and 1.'\n  );\n}\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      analyst: parsed,\n\n      observations: parsed.observations,\n      evidence_analysis: parsed.evidence_analysis,\n      hypotheses: parsed.hypotheses,\n      missing_evidence: parsed.missing_evidence,\n      next_steps: parsed.next_steps,\n      overall_evidence_confidence: confidence\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2848,
+        -144
+      ],
+      "id": "8870c5c0-9bdf-4141-a2e9-e8ce8ebea4c0",
+      "name": "Parse Analyst Output"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Review the Sales AI Analyst's investigation.\n\nANALYST OUTPUT:\n\n{{ JSON.stringify($json.analyst, null, 2) }}\n\nAUTHORITATIVE EVIDENCE:\n\n{{ JSON.stringify($json.evidence_synthesis ?? $json.evidence_map ?? {}, null, 2) }}\n\nEvaluate whether the Analyst's reasoning is sufficiently supported by the supplied evidence.\n\nDo NOT perform a new investigation.\n\nDo NOT invent evidence.\n\nDo NOT treat hypotheses as confirmed facts.\n\nCheck specifically:\n\n1. factual accuracy\n2. numerical accuracy\n3. unsupported claims\n4. evidence gaps\n5. whether hypotheses are appropriately qualified\n6. whether alternative explanations are needed\n7. whether the recommended next steps address the evidence gaps\n\nReturn ONLY valid JSON.\n\nUse exactly this structure:\n\n{\n  \"critic_verdict\": \"pass\",\n  \"analyst_score\": 0.0,\n  \"factual_errors\": [],\n  \"numerical_errors\": [],\n  \"unsupported_claims\": [],\n  \"evidence_gaps\": [],\n  \"hypothesis_assessment\": [],\n  \"alternative_explanations\": [],\n  \"required_corrections\": [],\n  \"critic_confidence\": 0.0\n}\n\nRules:\n\n- critic_verdict must be either \"pass\" or \"incomplete\"\n- analyst_score must be between 0 and 1\n- critic_confidence must be between 0 and 1\n- factual_errors must be an array of strings\n- numerical_errors must be an array of strings\n- unsupported_claims must be an array of strings\n- evidence_gaps must be an array of strings\n- hypothesis_assessment must be an array of strings\n- alternative_explanations must be an array of strings\n- required_corrections must be an array of strings\n- Do not output Markdown.\n- Do not output code fences.\n- Do not write anything outside the JSON object.\n\nFINAL VERDICT RULE:\n\nThe verdict MUST be determined mechanically from the scores.\n\nReturn \"pass\" ONLY if:\n\nanalyst_score >= 0.75\nAND\ncritic_confidence >= 0.70\nAND\nfactual_errors is empty\nAND\nnumerical_errors is empty\nAND\nunsupported_claims is empty\nAND\nrequired_corrections is empty.\n\nOtherwise return:\n\n\"critic_verdict\": \"incomplete\"\n\nNever return \"pass\" when analyst_score is below 0.75.\n\nNever return \"pass\" when critic_confidence is below 0.70.\n\nDo not optimize for a positive verdict. Be conservative.",
+        "options": {
+          "systemMessage": "You are the Aegis Critic.\n\nYour job is to critically evaluate the Sales AI Analyst's output against the supplied evidence.\n\nYou are NOT the investigator.\n\nYou are NOT allowed to invent missing evidence.\n\nYou are NOT allowed to make unsupported claims.\n\nYou must distinguish:\n- established evidence\n- reasonable inference\n- unsupported claims\n- hypotheses\n\nA hypothesis is not a fact.\n\nA temporal relationship is not automatically causation.\n\nIf evidence is missing, explicitly identify the evidence gap.\n\nEvaluate the Analyst's numerical claims against the supplied evidence.\n\nBe conservative.\n\nIf the Analyst is incomplete, return \"incomplete\".\n\nIf the Analyst is sufficiently supported, return \"pass\".\n\nReturn ONLY valid JSON.\n\nNo Markdown.\nNo code fences.\nNo explanation."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3040,
+        -160
+      ],
+      "id": "aa13dab2-cda3-41db-bcb2-7fb766f24e69",
+      "name": "Aegis Critic"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        64
+      ],
+      "id": "602f2b31-b789-4bf7-8886-fa2eea0f81e8",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "WEp1n6IdFVFDVs4F",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// AEGIS — Deterministic Evidence Metrics\n// ============================================================\n\n// Current input = output of Collect Sales Evidence\nconst current = $input.first().json;\n\n// Original event = output of Generate Business Event\nconst generatedEvent = $(\"Generate Business Event\").first().json;\n\n\n// ============================================================\n// Recursive field finder\n// ============================================================\n\nfunction findField(obj, targetKey, path = \"\") {\n  if (obj === null || obj === undefined) {\n    return null;\n  }\n\n  if (typeof obj !== \"object\") {\n    return null;\n  }\n\n  if (Object.prototype.hasOwnProperty.call(obj, targetKey)) {\n    return {\n      value: obj[targetKey],\n      path: path ? `${path}.${targetKey}` : targetKey\n    };\n  }\n\n  for (const key of Object.keys(obj)) {\n    const result = findField(\n      obj[key],\n      targetKey,\n      path ? `${path}.${key}` : key\n    );\n\n    if (result !== null) {\n      return result;\n    }\n  }\n\n  return null;\n}\n\n\nfunction findRequired(obj, key, sourceName) {\n  const result = findField(obj, key);\n\n  if (!result) {\n    throw new Error(\n      `Could not find \"${key}\" in ${sourceName}.`\n    );\n  }\n\n  return result;\n}\n\n\n// ============================================================\n// Revenue comes from Generate Business Event\n// ============================================================\n\nconst previousRevenueResult =\n  findRequired(\n    generatedEvent,\n    \"previous_revenue\",\n    \"Generate Business Event\"\n  );\n\nconst currentRevenueResult =\n  findRequired(\n    generatedEvent,\n    \"current_revenue\",\n    \"Generate Business Event\"\n  );\n\n\n// ============================================================\n// Payment/support evidence\n//\n// Search both:\n// 1. Collect Sales Evidence\n// 2. Generate Business Event\n//\n// This makes the node tolerant of our current data structure.\n// ============================================================\n\nfunction findFromSources(key, sources) {\n\n  for (const source of sources) {\n\n    const result = findField(\n      source.object,\n      key\n    );\n\n    if (result !== null) {\n      return {\n        ...result,\n        source: source.name\n      };\n    }\n  }\n\n  throw new Error(\n    `Could not find \"${key}\" in any available source.`\n  );\n}\n\n\nconst sources = [\n  {\n    name: \"Collect Sales Evidence\",\n    object: current\n  },\n  {\n    name: \"Generate Business Event\",\n    object: generatedEvent\n  }\n];\n\n\nconst previousPaymentFailuresResult =\n  findFromSources(\n    \"previous_failure_count\",\n    sources\n  );\n\nconst currentPaymentFailuresResult =\n  findFromSources(\n    \"current_failure_count\",\n    sources\n  );\n\nconst previousPaymentTicketsResult =\n  findFromSources(\n    \"previous_payment_tickets\",\n    sources\n  );\n\nconst currentPaymentTicketsResult =\n  findFromSources(\n    \"current_payment_tickets\",\n    sources\n  );\n\n\n// ============================================================\n// Convert values to numbers\n// ============================================================\n\nconst previousRevenue =\n  Number(previousRevenueResult.value);\n\nconst currentRevenue =\n  Number(currentRevenueResult.value);\n\nconst previousPaymentFailures =\n  Number(previousPaymentFailuresResult.value);\n\nconst currentPaymentFailures =\n  Number(currentPaymentFailuresResult.value);\n\nconst previousPaymentTickets =\n  Number(previousPaymentTicketsResult.value);\n\nconst currentPaymentTickets =\n  Number(currentPaymentTicketsResult.value);\n\n\n// ============================================================\n// Validate\n// ============================================================\n\nconst values = {\n  previousRevenue,\n  currentRevenue,\n  previousPaymentFailures,\n  currentPaymentFailures,\n  previousPaymentTickets,\n  currentPaymentTickets\n};\n\nfor (const [name, value] of Object.entries(values)) {\n\n  if (!Number.isFinite(value)) {\n\n    throw new Error(\n      `${name} is not a valid number: ${value}`\n    );\n\n  }\n\n}\n\n\n// ============================================================\n// Deterministic percentage calculation\n// ============================================================\n\nfunction percentageChange(previous, current) {\n\n  if (previous === 0) {\n    return null;\n  }\n\n  return Number(\n    (\n      ((current - previous) / previous) * 100\n    ).toFixed(2)\n  );\n\n}\n\n\n// ============================================================\n// Calculate\n// ============================================================\n\nconst revenueChange =\n  percentageChange(\n    previousRevenue,\n    currentRevenue\n  );\n\nconst paymentFailureChange =\n  percentageChange(\n    previousPaymentFailures,\n    currentPaymentFailures\n  );\n\nconst paymentTicketChange =\n  percentageChange(\n    previousPaymentTickets,\n    currentPaymentTickets\n  );\n\n\n// ============================================================\n// Return\n// ============================================================\n\nreturn [\n  {\n    json: {\n\n      ...current,\n\n      metrics: {\n\n        revenue: {\n          previous: previousRevenue,\n          current: currentRevenue,\n          percentage_change: revenueChange,\n\n          direction:\n            currentRevenue > previousRevenue\n              ? \"increased\"\n              : currentRevenue < previousRevenue\n              ? \"decreased\"\n              : \"unchanged\"\n        },\n\n\n        payment_failures: {\n          previous: previousPaymentFailures,\n          current: currentPaymentFailures,\n          percentage_change: paymentFailureChange,\n\n          direction:\n            currentPaymentFailures > previousPaymentFailures\n              ? \"increased\"\n              : currentPaymentFailures < previousPaymentFailures\n              ? \"decreased\"\n              : \"unchanged\"\n        },\n\n\n        payment_tickets: {\n          previous: previousPaymentTickets,\n          current: currentPaymentTickets,\n          percentage_change: paymentTicketChange,\n\n          direction:\n            currentPaymentTickets > previousPaymentTickets\n              ? \"increased\"\n              : currentPaymentTickets < previousPaymentTickets\n              ? \"decreased\"\n              : \"unchanged\"\n        }\n\n      },\n\n\n      metric_sources: {\n\n        previous_revenue:\n          `Generate Business Event → ${previousRevenueResult.path}`,\n\n        current_revenue:\n          `Generate Business Event → ${currentRevenueResult.path}`,\n\n        previous_payment_failures:\n          `${previousPaymentFailuresResult.source} → ${previousPaymentFailuresResult.path}`,\n\n        current_payment_failures:\n          `${currentPaymentFailuresResult.source} → ${currentPaymentFailuresResult.path}`,\n\n        previous_payment_tickets:\n          `${previousPaymentTicketsResult.source} → ${previousPaymentTicketsResult.path}`,\n\n        current_payment_tickets:\n          `${currentPaymentTicketsResult.source} → ${currentPaymentTicketsResult.path}`\n\n      },\n\n\n      metrics_status: \"calculated\"\n\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        -96
+      ],
+      "id": "d8924090-2b30-4c21-a54f-8cf6df067dd3",
+      "name": "Calculate Evidence Metrics"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst raw = item.output;\n\nif (!raw || typeof raw !== 'string') {\n  throw new Error('Aegis Critic returned no output.');\n}\n\nconst cleaned = raw\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(\n    `Critic response contains invalid JSON: ${error.message}`\n  );\n}\n\nconst requiredFields = [\n  'critic_verdict',\n  'analyst_score',\n  'factual_errors',\n  'numerical_errors',\n  'unsupported_claims',\n  'evidence_gaps',\n  'hypothesis_assessment',\n  'alternative_explanations',\n  'required_corrections',\n  'critic_confidence'\n];\n\nfor (const field of requiredFields) {\n  if (!(field in parsed)) {\n    throw new Error(\n      `Critic response is missing required field \"${field}\".`\n    );\n  }\n}\n\nif (!['pass', 'incomplete'].includes(parsed.critic_verdict)) {\n  throw new Error(\n    `Invalid critic_verdict: ${parsed.critic_verdict}`\n  );\n}\n\nconst arrayFields = [\n  'factual_errors',\n  'numerical_errors',\n  'unsupported_claims',\n  'evidence_gaps',\n  'hypothesis_assessment',\n  'alternative_explanations',\n  'required_corrections'\n];\n\nfor (const field of arrayFields) {\n  if (!Array.isArray(parsed[field])) {\n    throw new Error(\n      `Critic field \"${field}\" must be an array.`\n    );\n  }\n}\n\nconst analystScore = Number(parsed.analyst_score);\nconst criticConfidence = Number(parsed.critic_confidence);\n\nif (\n  !Number.isFinite(analystScore) ||\n  analystScore < 0 ||\n  analystScore > 1\n) {\n  throw new Error(\n    'analyst_score must be a number between 0 and 1.'\n  );\n}\n\nif (\n  !Number.isFinite(criticConfidence) ||\n  criticConfidence < 0 ||\n  criticConfidence > 1\n) {\n  throw new Error(\n    'critic_confidence must be a number between 0 and 1.'\n  );\n}\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      critic: parsed,\n\n      critic_verdict: parsed.critic_verdict,\n      analyst_score: analystScore,\n      factual_errors: parsed.factual_errors,\n      numerical_errors: parsed.numerical_errors,\n      unsupported_claims: parsed.unsupported_claims,\n      evidence_gaps: parsed.evidence_gaps,\n      hypothesis_assessment: parsed.hypothesis_assessment,\n      alternative_explanations: parsed.alternative_explanations,\n      required_corrections: parsed.required_corrections,\n      critic_confidence: criticConfidence\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        -160
+      ],
+      "id": "f239138b-97f2-4fb0-b77c-1b468d9ccc95",
+      "name": "Parse Critic Output"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// ============================================================\n// AEGIS DECISION GATE\n// Deterministic evaluation only.\n// No loop control.\n// ============================================================\n\nconst critic = item.critic;\n\nif (!critic) {\n  throw new Error(\n    \"Decision Gate: critic object not found.\"\n  );\n}\n\n// ============================================================\n// SCORES\n// ============================================================\n\nconst analystScore =\n  Number(critic.analyst_score ?? 0);\n\nconst criticConfidence =\n  Number(critic.critic_confidence ?? 0);\n\n// ============================================================\n// CRITIC FINDINGS\n// ============================================================\n\nconst factualErrors =\n  Array.isArray(critic.factual_errors)\n    ? critic.factual_errors.length\n    : 0;\n\nconst numericalErrors =\n  Array.isArray(critic.numerical_errors)\n    ? critic.numerical_errors.length\n    : 0;\n\nconst unsupportedClaims =\n  Array.isArray(critic.unsupported_claims)\n    ? critic.unsupported_claims.length\n    : 0;\n\nconst requiredCorrections =\n  Array.isArray(critic.required_corrections)\n    ? critic.required_corrections.length\n    : 0;\n\n// ============================================================\n// THRESHOLDS\n// ============================================================\n\nconst minimumAnalystScore = 0.75;\nconst minimumCriticConfidence = 0.70;\n\n// ============================================================\n// PASS CONDITIONS\n// ============================================================\n\nconst scorePass =\n  analystScore >= minimumAnalystScore;\n\nconst confidencePass =\n  criticConfidence >= minimumCriticConfidence;\n\nconst factualPass =\n  factualErrors === 0;\n\nconst numericalPass =\n  numericalErrors === 0;\n\nconst unsupportedPass =\n  unsupportedClaims === 0;\n\nconst correctionsPass =\n  requiredCorrections === 0;\n\n// ============================================================\n// FINAL DECISION\n// ============================================================\n\nconst passed =\n  scorePass &&\n  confidencePass &&\n  factualPass &&\n  numericalPass &&\n  unsupportedPass &&\n  correctionsPass;\n\nconst status =\n  passed\n    ? \"PASS\"\n    : \"FAIL\";\n\nconst route =\n  passed\n    ? \"ACTION\"\n    : \"REVIEW\";\n\n// ============================================================\n// OUTPUT\n// ============================================================\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      decision: {\n        status,\n        route,\n\n        reasons: {\n          scorePass,\n          confidencePass,\n          factualPass,\n          numericalPass,\n          unsupportedPass,\n          correctionsPass\n        },\n\n        thresholds: {\n          minimum_analyst_score:\n            minimumAnalystScore,\n\n          minimum_critic_confidence:\n            minimumCriticConfidence\n        }\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3568,
+        -160
+      ],
+      "id": "fa2842a1-d05d-4ebb-bc3c-2321a097c903",
+      "name": "Decision Gate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// ------------------------------------------------------------\n// CRITIC\n// ------------------------------------------------------------\n\nconst critic = item.critic;\n\nif (!critic) {\n  throw new Error(\n    \"Build Critic Feedback: critic object not found.\"\n  );\n}\n\n// ------------------------------------------------------------\n// RECOVER THE ANALYST'S LATEST ANALYSIS\n// ------------------------------------------------------------\n\n// First try the incoming item.\nlet previousAnalysis = item.analysis ?? null;\n\n// If Parse Critic Output dropped it, retrieve it directly\n// from the latest Parse Analyst Output execution.\nif (!previousAnalysis) {\n  try {\n    previousAnalysis = $('Parse Analyst Output').first().json.analysis;\n  } catch (error) {\n    throw new Error(\n      \"Build Critic Feedback: Could not retrieve the Analyst analysis from Parse Analyst Output.\"\n    );\n  }\n}\n\nif (!previousAnalysis) {\n  throw new Error(\n    \"Build Critic Feedback: Analyst analysis is unavailable.\"\n  );\n}\n\n// ------------------------------------------------------------\n// BUILD FEEDBACK\n// ------------------------------------------------------------\n\nconst feedback = {\n  verdict: critic.critic_verdict ?? \"unknown\",\n\n  analyst_score: Number(critic.analyst_score ?? 0),\n\n  critic_confidence: Number(critic.critic_confidence ?? 0),\n\n  factual_errors: Array.isArray(critic.factual_errors)\n    ? critic.factual_errors\n    : [],\n\n  numerical_errors: Array.isArray(critic.numerical_errors)\n    ? critic.numerical_errors\n    : [],\n\n  unsupported_claims: Array.isArray(critic.unsupported_claims)\n    ? critic.unsupported_claims\n    : [],\n\n  evidence_gaps: Array.isArray(critic.evidence_gaps)\n    ? critic.evidence_gaps\n    : [],\n\n  hypothesis_assessment: Array.isArray(critic.hypothesis_assessment)\n    ? critic.hypothesis_assessment\n    : [],\n\n  alternative_explanations: Array.isArray(critic.alternative_explanations)\n    ? critic.alternative_explanations\n    : [],\n\n  required_corrections: Array.isArray(critic.required_corrections)\n    ? critic.required_corrections\n    : []\n};\n\n// ------------------------------------------------------------\n// OUTPUT\n// ------------------------------------------------------------\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      previous_analysis: previousAnalysis,\n\n      feedback,\n\n      reanalysis_required: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4048,
+        -144
+      ],
+      "id": "5df72178-f0d3-46be-9cc0-b98137610030",
+      "name": "Build Critic Feedback"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "REANALYZE THE CURRENT AEGIS INVESTIGATION.\n\nPREVIOUS ANALYSIS:\n\n{{ JSON.stringify($json.previous_analysis ?? $json.analysis ?? {}, null, 2) }}\n\nCRITIC FEEDBACK:\n\n{{ JSON.stringify($json.feedback ?? $json.critic ?? {}, null, 2) }}\n\nAUTHORITATIVE EVENT:\n\n{{ JSON.stringify($json.event ?? {}, null, 2) }}\n\nAUTHORITATIVE EVIDENCE:\n\n{{ JSON.stringify($json.evidence ?? {}, null, 2) }}\n\nDETERMINISTIC METRICS:\n\n{{ JSON.stringify($json.metrics ?? {}, null, 2) }}\n\nINVESTIGATION EVIDENCE:\n\n{{ JSON.stringify($json.evidence_map ?? {}, null, 2) }}\n\nCURRENT ITERATION:\n\n{{ $json.aegis_iteration }}\n\nRevise the previous analysis using the critic feedback.\n\nPreserve all authoritative evidence and deterministic calculations.\n\nDo not invent evidence.\n\nReturn ONLY the required JSON analysis structure.",
+        "options": {
+          "systemMessage": "=You are the Aegis Re-Analysis Agent.\n\nYour job is to revise the PREVIOUS SALES ANALYSIS using the CRITIC FEEDBACK.\n\nYou are NOT starting a new analysis.\n\nYou MUST use the actual data supplied to you.\n\nYou MUST NOT invent:\n- hypothetical scenarios\n- example data\n- fake event IDs\n- fake dates\n- fake metrics\n- fake evidence\n- replacement datasets\n\nYou MUST NOT say that the previous analysis or critic feedback was not provided if they are present in the input.\n\nYou MUST preserve authoritative evidence and deterministic calculations.\n\nYou may:\n- remove unsupported claims\n- reduce confidence\n- modify hypotheses\n- add missing-evidence requirements\n- incorporate valid critic corrections\n- improve reasoning based on the critic feedback\n\nYou MUST NOT invent evidence to fill an evidence gap.\n\nIMPORTANT:\nReturn ONLY valid JSON.\n\nDO NOT use Markdown.\nDO NOT use ```json.\nDO NOT write explanations before or after the JSON.\n\nReturn exactly this structure:\n\n{\n  \"anomaly_summary\": \"string\",\n  \"observed_facts\": [],\n  \"evidence_analysis\": [],\n  \"hypotheses\": [],\n  \"missing_evidence\": [],\n  \"recommended_next_steps\": [],\n  \"overall_confidence\": 0.0\n}\n\nThe revised analysis must be based on:\n\nPREVIOUS ANALYSIS:\n{{ JSON.stringify($json.previous_analysis) }}\n\nCRITIC FEEDBACK:\n{{ JSON.stringify($json.feedback) }}\n\nAUTHORITATIVE EVENT/EVIDENCE DATA:\n{{ JSON.stringify($json.event ?? {}) }}\n\nREANALYSIS RULE:\n\nIf the Critic says evidence is insufficient, explicitly preserve that uncertainty.\n\nDo NOT turn correlation into causation.\n\nDo NOT increase confidence unless the supplied evidence justifies it.\n\nThe objective is to produce a more defensible analysis than the previous iteration.\n\nconst item = $input.first().json;\n\n// ============================================================\n// GET RAW ANALYST / RE-ANALYST OUTPUT\n// ============================================================\n\nconst raw =\n  item.output ??\n  item.text ??\n  item.response ??\n  \"\";\n\nif (!raw) {\n  throw new Error(\n    \"Parse Analyst Output: no Analyst output found.\"\n  );\n}\n\n// ============================================================\n// EXTRACT JSON\n// ============================================================\n\nfunction extractJson(text) {\n\n  // 1. Remove markdown code fences\n  let cleaned = text\n    .replace(/```json/gi, \"\")\n    .replace(/```/g, \"\")\n    .trim();\n\n  // 2. First try the entire response\n  try {\n    return JSON.parse(cleaned);\n  } catch {}\n\n  // 3. Try extracting the largest JSON object\n  const start = cleaned.indexOf(\"{\");\n  const end = cleaned.lastIndexOf(\"}\");\n\n  if (start === -1 || end === -1 || end <= start) {\n    throw new Error(\n      \"AI Analyst returned no JSON object.\"\n    );\n  }\n\n  let candidate =\n    cleaned.slice(start, end + 1).trim();\n\n  // 4. Remove JavaScript-style comments\n  candidate = candidate\n    .replace(/\\/\\*[\\s\\S]*?\\*\\//g, \"\")\n    .replace(/^\\s*\\/\\/.*$/gm, \"\");\n\n  // 5. Try again\n  try {\n    return JSON.parse(candidate);\n  } catch (error) {\n    throw new Error(\n      \"AI Analyst returned invalid JSON after extraction: \" +\n      error.message\n    );\n  }\n}\n\nconst parsed = extractJson(raw);\n\n// ============================================================\n// GET ACTUAL ANALYSIS\n// ============================================================\n\nconst analysis =\n  parsed.analysis ??\n  parsed;\n\n// ============================================================\n// PRESERVE AEGIS STATE\n// ============================================================\n\nreturn [\n  {\n    json: {\n\n      // Analyst's actual analysis\n      ...analysis,\n\n      // Explicit analysis object\n      analysis,\n\n      // ------------------------------------------------------\n      // AEGIS LOOP STATE\n      // ------------------------------------------------------\n\n      aegis_iteration:\n        Number(item.aegis_iteration ?? 0),\n\n      max_iterations:\n        Number(item.max_iterations ?? 3),\n\n      // ------------------------------------------------------\n      // CRITIC / REANALYSIS CONTEXT\n      // ------------------------------------------------------\n\n      previous_analysis:\n        item.previous_analysis ?? null,\n\n      feedback:\n        item.feedback ?? null,\n\n      reanalysis_required:\n        item.reanalysis_required ?? false\n    }\n  }\n];"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4976,
+        -144
+      ],
+      "id": "65fc64cd-48a2-4297-b068-8915f249c8b5",
+      "name": "Aegis Re-Analyst"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        4864,
+        80
+      ],
+      "id": "1ace1d8d-9f7a-4529-b04c-72ce83106a1e",
+      "name": "Ollama Chat Model2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "WEp1n6IdFVFDVs4F",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// ============================================================\n// AEGIS ITERATION GUARD\n// ============================================================\n\nconst currentIteration = Number(\n  item.aegis_iteration ??\n  item.iteration_control?.current_iteration ??\n  0\n);\n\nconst maxIterations = Number(\n  item.max_iterations ??\n  item.iteration_control?.max_iterations ??\n  3\n);\n\n// ============================================================\n// VALIDATION\n// ============================================================\n\nif (!Number.isFinite(currentIteration)) {\n  throw new Error(\n    \"Aegis Iteration Guard: invalid current iteration.\"\n  );\n}\n\nif (!Number.isFinite(maxIterations) || maxIterations < 1) {\n  throw new Error(\n    \"Aegis Iteration Guard: invalid max_iterations.\"\n  );\n}\n\n// ============================================================\n// ROUTING DECISION\n// ============================================================\n\nconst limitReached =\n  currentIteration >= maxIterations;\n\nconst canReanalyze =\n  !limitReached;\n\nconst route =\n  limitReached\n    ? \"STOP\"\n    : \"CONTINUE\";\n\n// ============================================================\n// RETURN ONE STATE ITEM\n// ============================================================\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      aegis_iteration: currentIteration,\n      max_iterations: maxIterations,\n\n      iteration_control: {\n        current_iteration: currentIteration,\n        max_iterations: maxIterations,\n        can_reanalyze: canReanalyze,\n        limit_reached: limitReached,\n        route\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        -160
+      ],
+      "id": "e3563003-2b09-4e88-b4d9-0d819e295c77",
+      "name": "Aegis Iteration Guard"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision.route }}",
+                    "rightValue": "ACTION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "533c934d-4395-491d-abfa-c14f0cfa7646"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ACTION"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "30f32703-ed20-4a2b-8d26-5b98c031e488",
+                    "leftValue": "={{ $json.decision.route }}",
+                    "rightValue": "RE_ANALYZE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "RE_ANALYZE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "07717218-4366-447d-9114-7bebe3280859",
+                    "leftValue": "={{ $json.decision.route }}",
+                    "rightValue": "STOP",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "STOP"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        3840,
+        -272
+      ],
+      "id": "f02ac868-2001-42a3-bac0-7f1ae69a5eca",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// ============================================================\n// AEGIS ITERATION STATE\n// ============================================================\n\n// Prefer the explicit Aegis iteration.\n// Fall back to iteration_control.current_iteration if needed.\nconst currentIteration = Number(\n  item.aegis_iteration ??\n  item.iteration_control?.current_iteration ??\n  0\n);\n\nconst maxIterations = Number(\n  item.max_iterations ??\n  item.iteration_control?.max_iterations ??\n  3\n);\n\nconst nextIteration = currentIteration + 1;\n\n// ============================================================\n// SAFETY\n// ============================================================\n\nif (!Number.isFinite(currentIteration)) {\n  throw new Error(\n    \"Increment Iteration: invalid current iteration.\"\n  );\n}\n\nif (!Number.isFinite(maxIterations) || maxIterations < 1) {\n  throw new Error(\n    \"Increment Iteration: invalid max_iterations.\"\n  );\n}\n\n// ============================================================\n// RETURN ONE STATE ITEM\n// ============================================================\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      // Authoritative loop counter\n      aegis_iteration: nextIteration,\n\n      // Authoritative maximum\n      max_iterations: maxIterations,\n\n      // Explicit loop state\n      iteration_control: {\n        previous_iteration: currentIteration,\n        current_iteration: nextIteration,\n        max_iterations: maxIterations,\n        can_reanalyze: nextIteration < maxIterations,\n        limit_reached: nextIteration >= maxIterations,\n        route:\n          nextIteration >= maxIterations\n            ? \"STOP\"\n            : \"CONTINUE\"\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4256,
+        -144
+      ],
+      "id": "b7cab329-7e33-454d-a26a-d9a488d7d9f7",
+      "name": "Increment Iteration"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      aegis_iteration: Number(item.aegis_iteration ?? 0),\n      max_iterations: Number(item.max_iterations ?? 3)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        176
+      ],
+      "id": "09957b89-cefb-4a69-9119-dc89cd671d63",
+      "name": "Restore Aegis State"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ String($json.iteration_control?.route ?? '') }}",
+                    "rightValue": "CONTINUE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "58fc7c5d-5b0f-4187-999d-59f5407af32b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CONTINUE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9382781a-afab-48c7-8c7a-02d1742536ea",
+                    "leftValue": "={{ String($json.iteration_control?.route ?? '') }}",
+                    "rightValue": "STOP",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "STOP"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        4688,
+        -192
+      ],
+      "id": "548ed585-7c87-41e7-ad3e-36c3599b472a",
+      "name": "Iteration Router"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      investigation_context: {\n        objective: \"Determine the most plausible explanation for the detected anomaly.\",\n\n        evidence: item.evidence ?? item.metrics ?? item,\n\n        investigation_domains: [\n          \"temporal\",\n          \"payment\",\n          \"system\",\n          \"business\"\n        ],\n\n        reasoning_rules: {\n          correlation_is_not_causation: true,\n          preserve_observed_facts: true,\n          do_not_invent_evidence: true,\n          explicitly_mark_missing_evidence: true\n        }\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        -96
+      ],
+      "id": "01e2fcf5-0240-4c33-8922-d41e5b32ef26",
+      "name": "Build Investigation Context"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Investigate the temporal dimension of this Aegis anomaly.\n\nAUTHORITATIVE INPUT:\n\n{{ JSON.stringify($json, null, 2) }}\n\nFocus ONLY on temporal relationships.\n\nReturn valid JSON only.",
+        "options": {
+          "systemMessage": "You are the Aegis Temporal Investigator.\n\nYour ONLY responsibility is to investigate temporal relationships in the supplied evidence.\n\nDetermine:\n\n1. What changed?\n2. When did it change?\n3. When did the anomaly occur?\n4. Did relevant events precede the anomaly?\n5. What evidence supports temporal association?\n6. What evidence is missing?\n\nTemporal precedence does NOT establish causality.\n\nNever invent dates or events.\n\nNever convert correlation into causation.\n\nPreserve supplied numerical values.\n\nClearly distinguish observed facts from interpretations.\n\nReturn ONLY valid JSON.\n\nUse exactly:\n\n{\n  \"domain\": \"temporal\",\n  \"findings\": [],\n  \"supporting_evidence\": [],\n  \"missing_evidence\": [],\n  \"possible_relationships\": [],\n  \"confidence\": 0.0\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1952,
+        -448
+      ],
+      "id": "21939ee7-e878-4735-8ecd-617c299ee1b2",
+      "name": "Aegis Temporal Investigator"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Investigate the payment dimension of this Aegis anomaly.\n\nAUTHORITATIVE INPUT:\n\n{{ JSON.stringify($json, null, 2) }}\n\nFocus ONLY on payment-related evidence.\n\nReturn valid JSON only.",
+        "options": {
+          "systemMessage": "You are the Aegis Payment Investigator.\n\nYour ONLY responsibility is to investigate payment-related evidence.\n\nAnalyze:\n\n- payment failures\n- payment success rates\n- payment tickets\n- transaction behavior\n- checkout behavior\n- payment provider evidence\n\nDetermine whether payment-related evidence can plausibly relate to the detected anomaly.\n\nDo not claim causality without evidence.\n\nDo not invent payment provider incidents.\n\nPreserve numerical values exactly.\n\nSeparate observed facts from hypotheses.\n\nIdentify missing evidence explicitly.\n\nReturn ONLY valid JSON.\n\nUse exactly:\n\n{\n  \"domain\": \"payment\",\n  \"findings\": [],\n  \"supporting_evidence\": [],\n  \"missing_evidence\": [],\n  \"possible_relationships\": [],\n  \"confidence\": 0.0\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1952,
+        -160
+      ],
+      "id": "36490921-7202-4394-829d-b61151c744a8",
+      "name": "Aegis Payment Investigator"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Investigate the system dimension of this Aegis anomaly.\n\nAUTHORITATIVE INPUT:\n\n{{ JSON.stringify($json, null, 2) }}\n\nFocus ONLY on technical/system evidence.\n\nReturn valid JSON only.",
+        "options": {
+          "systemMessage": "You are the Aegis System Investigator.\n\nYour ONLY responsibility is to investigate technical and system-related explanations.\n\nAnalyze:\n\n- deployments\n- application failures\n- infrastructure failures\n- outages\n- latency\n- errors\n- configuration changes\n- service degradation\n\nA deployment occurring before an anomaly is temporal evidence, not proof of causality.\n\nNever invent outages or incidents.\n\nNever invent deployment impact.\n\nClearly distinguish facts, correlations, hypotheses and missing evidence.\n\nPreserve supplied numerical evidence.\n\nReturn ONLY valid JSON.\n\nUse exactly:\n\n{\n  \"domain\": \"system\",\n  \"findings\": [],\n  \"supporting_evidence\": [],\n  \"missing_evidence\": [],\n  \"possible_relationships\": [],\n  \"confidence\": 0.0\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1952,
+        128
+      ],
+      "id": "ffcd7d76-7112-42a9-a370-198ce00bdeee",
+      "name": "Aegis System Investigator"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Investigate the business dimension of this Aegis anomaly.\n\nAUTHORITATIVE INPUT:\n\n{{ JSON.stringify($json, null, 2) }}\n\nFocus ONLY on business-side evidence.\n\nReturn valid JSON only.",
+        "options": {
+          "systemMessage": "You are the Aegis Business Investigator.\n\nYour ONLY responsibility is to investigate business-side explanations.\n\nAnalyze:\n\n- customer segments\n- pricing changes\n- promotions\n- product changes\n- seasonality\n- demand changes\n- business events\n- market-related explanations\n\nDo not invent business events.\n\nDo not claim causality without evidence.\n\nIdentify unavailable evidence explicitly.\n\nPreserve observed facts and numerical values.\n\nReturn ONLY valid JSON.\n\nUse exactly:\n\n{\n  \"domain\": \"business\",\n  \"findings\": [],\n  \"supporting_evidence\": [],\n  \"missing_evidence\": [],\n  \"possible_relationships\": [],\n  \"confidence\": 0.0\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1952,
+        384
+      ],
+      "id": "fef8718d-a5c0-4060-b8b3-f89d869e2229",
+      "name": "Aegis Business Investigator"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2320,
+        -176
+      ],
+      "id": "667bd4af-49f4-4ed2-b55e-3a896b503ed3",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst first = items[0]?.json ?? {};\n\nreturn [\n  {\n    json: {\n      ...first,\n\n      investigation_results: items.map(item => item.json)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        -480
+      ],
+      "id": "364a175a-2157-40be-9758-86e2f6c6ffa1",
+      "name": "Combine Investigations"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Synthesize the independent Aegis investigations.\n\nINVESTIGATION RESULTS:\n\n{{ JSON.stringify($json.investigation_results, null, 2) }}\n\nProduce an evidence map for the Sales AI Analyst.\n\nDo not make the final diagnosis.\n\nReturn valid JSON only.",
+        "options": {
+          "systemMessage": "You are the Aegis Evidence Synthesizer.\n\nYou operate between the independent investigation agents and the Sales AI Analyst.\n\nYour responsibility is to transform the independent investigation outputs into a structured, auditable evidence package.\n\nYou are NOT the final Analyst.\n\nYou are NOT the Critic.\n\nYou MUST NOT make the final diagnosis.\n\nYou MUST NOT decide the root cause.\n\nYou MUST NOT invent evidence.\n\nYou MUST NOT add facts that are absent from the investigator outputs.\n\nYou MUST preserve uncertainty and disagreement.\n\n==================================================\nCORE PRINCIPLE\n==================================================\n\nInvestigator conclusions are NOT automatically facts.\n\nSeparate:\n\nFACT\nA statement directly supported by the supplied evidence.\n\nINFERENCE\nA reasonable interpretation of supplied evidence.\n\nHYPOTHESIS\nA possible explanation that requires further evidence.\n\nOnly DIRECT FACTS may be placed into established_observations.\n\nA direct fact may come from an investigator's supplied evidence even if the investigator also provides an interpretation of that evidence.\n\nFor example:\n\nIf an investigator reports:\n\n\"Payment failures increased from 17 to 63.\"\n\nthat numerical observation is a DIRECT FACT and may be placed into established_observations.\n\nIf the investigator additionally says:\n\n\"Payment failures may have caused the revenue drop.\"\n\nthat causal interpretation is a HYPOTHESIS and must NOT be placed into established_observations.\n\nAlways preserve useful direct observations even when their interpretation is uncertain.\n\nDo NOT discard factual evidence merely because the root cause is unknown.\n\n==================================================\nEVIDENCE SYNTHESIS\n==================================================\n\nReview EVERY investigation supplied in the input.\n\nIdentify:\n\n1. Directly supported facts.\n2. Evidence independently reported by multiple investigators.\n3. Evidence reported by only one investigator.\n4. Conflicting or contradictory evidence.\n5. Genuine evidence gaps.\n6. Temporal relationships.\n7. Metric relationships.\n8. Candidate relationships requiring further investigation.\n\nIf multiple investigators independently support the same observation, identify it as converging evidence.\n\nIf investigators disagree, preserve BOTH positions and explain the disagreement.\n\nIf an investigator makes a claim without supporting evidence in the supplied investigation data, do not promote that claim to an established fact.\n\n==================================================\nTEMPORAL REASONING\n==================================================\n\nBe strict about temporal relationships.\n\nA deployment, configuration change, or other event occurring near the same time as an anomaly does NOT establish temporal precedence.\n\nOnly state:\n\n\"occurred before\"\n\n\"occurred after\"\n\n\"preceded\"\n\n\"followed\"\n\nwhen the supplied evidence contains timestamps or ordering that actually establishes that relationship.\n\nIf the ordering cannot be established, state:\n\n\"Temporal ordering is insufficient to determine precedence.\"\n\nNever infer deployment timing from the existence of a deployment alone.\n\n==================================================\nSYSTEM EVIDENCE\n==================================================\n\nSystem observations must describe evidence about actual system behavior.\n\nDo NOT place hypotheses such as:\n\n\"Checkout v2 may have introduced a bug\"\n\ninside established system evidence unless the supplied evidence directly demonstrates a bug.\n\nSuch statements belong under candidate_relationships.\n\nVALID:\n\n\"Checkout v2 deployment occurred at timestamp X.\"\n\n\"System latency increased after timestamp Y.\"\n\nINVALID:\n\n\"Checkout v2 introduced a bug.\"\n\nunless the supplied evidence directly establishes this.\n\n==================================================\nCAUSALITY\n==================================================\n\nCorrelation does not establish causation.\n\nTemporal order does not establish causation.\n\nFor example:\n\n\"Payment failures increased\"\n\nand\n\n\"Revenue decreased\"\n\ndoes NOT prove:\n\n\"Payment failures caused the revenue decrease.\"\n\nLikewise:\n\n\"A deployment occurred before the anomaly\"\n\ndoes NOT prove:\n\n\"The deployment caused the anomaly.\"\n\nUse cautious language such as:\n\n\"may be associated with\"\n\n\"could be related to\"\n\n\"temporally related\"\n\n\"potential relationship\"\n\n\"requires further investigation\"\n\n==================================================\nCANDIDATE RELATIONSHIPS\n==================================================\n\nCandidate relationships represent possible connections between observed facts.\n\nThey are NOT causal conclusions.\n\nEvery candidate relationship MUST clearly identify:\n\n- what is related to what\n- supporting evidence\n- missing or contradicting evidence\n- conservative evidence strength\n\nNever output vague descriptions such as:\n\n\"may cause\"\n\n\"could be related\"\n\n\"possible issue\"\n\nwithout identifying the actual relationship.\n\n==================================================\nEVIDENCE STRENGTH\n==================================================\n\nEvidence strength measures how well the supplied evidence supports a candidate relationship.\n\nIt is NOT probability of causation.\n\nUse:\n\n0.90 - 1.00 = strongly supported by multiple independent pieces of direct evidence\n\n0.75 - 0.89 = well supported by direct evidence with limited uncertainty\n\n0.50 - 0.74 = plausible relationship with meaningful evidence\n\n0.25 - 0.49 = weak or indirect support\n\n0.00 - 0.24 = little or no supporting evidence\n\nDo NOT assign 0.0 merely because causality has not been established.\n\n==================================================\nMISSING EVIDENCE\n==================================================\n\nExplicitly identify evidence required to distinguish competing explanations.\n\nPossible examples include:\n\n- deployment history\n- payment failure reasons\n- customer segment behavior\n- system logs\n- payment provider status\n- configuration changes\n- business events\n\nOnly list a gap when it is genuinely absent from the supplied investigation results.\n\nDo NOT assume that an example gap exists.\n\n==================================================\nOVERALL EVIDENCE CONFIDENCE\n==================================================\n\noverall_evidence_confidence represents confidence in the QUALITY and COMPLETENESS of the evidence package.\n\nIt does NOT represent confidence in the root cause.\n\nStrong factual evidence with insufficient causal evidence may still have moderate evidence confidence.\n\nExtensive conflicting or missing evidence should lower confidence.\n\nNo usable evidence may result in 0.0.\n\nDo NOT equate:\n\n\"root cause unknown\"\n\nwith:\n\n\"evidence confidence = 0.0\"\n\n==================================================\nOBSERVATION PRESERVATION\n==================================================\n\nDo not discard direct factual observations merely because they do not establish a root cause.\n\nIf an investigator provides a measurable observation, preserve it in the appropriate evidence_map domain.\n\nExamples of direct observations include:\n\n- revenue increased or decreased\n- payment failures increased or decreased\n- payment tickets increased or decreased\n- a deployment occurred\n- a configuration change occurred\n- system performance changed\n- customer activity changed\n\nA direct observation remains a fact even when its cause is unknown.\n\nSeparate the observation from the interpretation.\n\nExample:\n\nDirect fact:\n\"Payment failures increased from 17 to 63.\"\n\nInference:\n\"Payment failures may be associated with the revenue decline.\"\n\nThe first belongs in established_observations.\n\nThe second belongs in candidate_relationships or uncertainty.\n\n==================================================\nCONFLICT CLASSIFICATION\n==================================================\n\nOnly classify evidence as conflicting when two supplied sources make materially incompatible factual claims.\n\nDo NOT classify these as factual conflicts:\n\n- one investigator proposing a hypothesis\n- another investigator expressing uncertainty\n- different confidence scores\n- a hypothesis lacking supporting evidence\n- different interpretations of the same fact\n\nIf the underlying facts agree but the interpretations differ, preserve the factual observations and represent the disagreement as uncertainty or a candidate relationship.\n\nExample:\n\nFact:\n\"Payment failures increased.\"\n\nHypothesis:\n\"Payment failures may have contributed to the revenue decline.\"\n\nThis is NOT conflicting evidence.\n\nIt is factual evidence plus an unproven hypothesis.\n\n==================================================\nRELATIONSHIP QUALITY\n==================================================\n\nEvery candidate relationship must identify:\n\n1. The specific entities or events being related.\n2. The evidence supporting the relationship.\n3. Evidence that is missing or contradicts the relationship.\n4. A conservative evidence strength between 0 and 1.\n\nNever use vague relationship descriptions such as:\n\n\"may cause\"\n\n\"could be related\"\n\n\"possible issue\"\n\nwithout specifying what may be related to what.\n\n==================================================\nEVIDENCE CONFIDENCE\n==================================================\n\noverall_evidence_confidence measures the quality and completeness of the available evidence.\n\nIt does NOT represent confidence in the root cause.\n\nDo not set overall_evidence_confidence to 0 merely because the root cause is unknown.\n\nIf direct factual evidence exists but causal evidence is missing, use a moderate confidence appropriate to the evidence quality.\n\nOnly use very low confidence when the evidence package itself is substantially incomplete, unreliable, or contradictory.\n\n==================================================\nFINAL EVIDENCE DISCIPLINE\n==================================================\n\nBefore producing the final JSON, perform a final classification pass.\n\nFor every item:\n\nA statement describing an observed event, measurement, count, timestamp, or directly supplied condition is evidence.\n\nA statement describing what that evidence might mean is an inference.\n\nA statement proposing that one event caused, contributed to, or explains another event is a hypothesis.\n\nNever place an inference or hypothesis inside established_observations.\n\nFor example:\n\nFACT:\n\"Checkout v2 was deployed on 2026-08-19T10:00:00Z.\"\n\nFACT:\n\"The anomaly occurred on 2026-08-28T18:40:10.973Z.\"\n\nVALID TEMPORAL RELATIONSHIP:\n\"Checkout v2 was deployed before the anomaly.\"\n\nUNPROVEN HYPOTHESIS:\n\"The Checkout v2 deployment may have contributed to the anomaly.\"\n\nThe first three can be represented as evidence.\n\nThe final statement must remain a candidate relationship.\n\n==================================================\nTEMPORAL DETERMINATION\n==================================================\n\nWhen two supplied timestamps establish ordering, explicitly represent that ordering.\n\nFor example:\n\nIf deployment_time < anomaly_time:\n\n\"deployment occurred before anomaly\"\n\nIf deployment_time > anomaly_time:\n\n\"deployment occurred after anomaly\"\n\nIf timestamps are unavailable or ambiguous:\n\n\"temporal ordering is insufficient to determine precedence\"\n\nNever call temporal ordering unclear when the supplied timestamps clearly establish it.\n\n==================================================\nCONFIDENCE CALIBRATION\n==================================================\n\nDo not confuse:\n\nevidence confidence\n\nwith:\n\nroot-cause confidence.\n\nConcrete measurements, timestamps, and independently supplied observations increase evidence confidence even when the root cause remains unknown.\n\nUse low confidence only when the evidence package itself is sparse, contradictory, or unreliable.\n\nIf the evidence contains several concrete observations but lacks causal evidence, use moderate evidence confidence rather than near-zero confidence.\n\n==================================================\nOUTPUT FORMAT\n==================================================\n\nReturn ONLY one valid JSON object.\n\nThe output MUST contain EXACTLY these top-level keys:\n\n1. evidence_map\n2. converging_evidence\n3. conflicting_evidence\n4. missing_evidence\n5. candidate_relationships\n6. overall_evidence_confidence\n\nDO NOT output:\n\n- possible_relationships\n- confidence\n- diagnosis\n- final_diagnosis\n- root_cause\n- conclusion\n- analyst_score\n- critic_verdict\n\n==================================================\nEXACT JSON SCHEMA\n==================================================\n\n{\n  \"evidence_map\": {\n    \"temporal\": {\n      \"established_observations\": [],\n      \"supporting_evidence\": [],\n      \"uncertainty\": [],\n      \"evidence_gaps\": []\n    },\n    \"payment\": {\n      \"established_observations\": [],\n      \"supporting_evidence\": [],\n      \"uncertainty\": [],\n      \"evidence_gaps\": []\n    },\n    \"system\": {\n      \"established_observations\": [],\n      \"supporting_evidence\": [],\n      \"uncertainty\": [],\n      \"evidence_gaps\": []\n    },\n    \"business\": {\n      \"established_observations\": [],\n      \"supporting_evidence\": [],\n      \"uncertainty\": [],\n      \"evidence_gaps\": []\n    }\n  },\n  \"converging_evidence\": [],\n  \"conflicting_evidence\": [],\n  \"missing_evidence\": [],\n  \"candidate_relationships\": [],\n  \"overall_evidence_confidence\": 0.0\n}\n\n==================================================\nESTABLISHED OBSERVATION RULE\n==================================================\n\nAn established observation MUST be directly supported by supplied evidence.\n\nExample:\n\nVALID:\n\n{\n  \"description\": \"Checkout v2 was deployed on 2026-08-19\",\n  \"source\": \"system investigator\"\n}\n\nINVALID:\n\n{\n  \"description\": \"Checkout v2 introduced a bug\",\n  \"confidence\": 0.5\n}\n\nThe second statement is a hypothesis unless the supplied evidence directly demonstrates the bug.\n\nDo NOT place hypotheses into established_observations.\n\n==================================================\nCANDIDATE RELATIONSHIP RULE\n==================================================\n\nEvery candidate_relationship MUST use exactly this structure:\n\n{\n  \"relationship\": \"\",\n  \"supporting_evidence\": [],\n  \"missing_or_contradicting_evidence\": [],\n  \"evidence_strength\": 0.0\n}\n\nThe relationship must explicitly identify what may be related to what.\n\nVALID:\n\n\"The Checkout v2 deployment may be temporally associated with the revenue anomaly.\"\n\nINVALID:\n\n\"may cause\"\n\n\"possible issue\"\n\n\"could be related\"\n\nDo not claim causation unless the supplied evidence directly establishes causation.\n\n==================================================\nFINAL VALIDATION\n==================================================\n\nBefore responding, verify ALL of the following:\n\n1. The response is valid JSON.\n2. The first character is {.\n3. The last character is }.\n4. There is no Markdown.\n5. There is no explanation outside the JSON.\n6. The six required top-level keys are present.\n7. No additional top-level keys exist.\n8. evidence_map contains exactly:\n   temporal\n   payment\n   system\n   business\n9. Every domain contains:\n   established_observations\n   supporting_evidence\n   uncertainty\n   evidence_gaps\n10. candidate_relationships uses the required structure.\n11. No hypothesis is represented as an established fact.\n12. No causal relationship is presented as proven without evidence.\n13. overall_evidence_confidence is between 0 and 1.\n14. Do NOT output possible_relationships.\n15. Do NOT output confidence as a replacement for overall_evidence_confidence.\n\nReturn ONLY the final JSON object.\n\n==================================================\nFINAL VALIDATION\n==================================================\n\nBefore responding, internally verify:\n\n1. The response starts with {.\n2. The response ends with }.\n3. The response is valid JSON.\n4. No Markdown exists.\n5. No text exists outside the JSON object.\n6. All strings use double quotes.\n7. All confidence values are numbers between 0 and 1.\n8. No unsupported facts were invented.\n9. No causal relationship is presented as proven without evidence.\n10. Investigator disagreement is preserved.\n11. Evidence gaps are explicitly represented.\n12. All four investigation domains are present.\n13. Every candidate relationship identifies a clear relationship.\n14. Candidate relationships are not presented as established facts.\n15. Overall evidence confidence reflects evidence quality, not root-cause certainty."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2688,
+        -496
+      ],
+      "id": "c193c560-65c5-4b99-9625-0880103a7f30",
+      "name": "Evidence Synthesizer"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        -480
+      ],
+      "id": "6a756ac1-3e7f-49fc-9c4e-80afa47b65e9",
+      "name": "Ollama Chat Model3",
+      "credentials": {
+        "ollamaApi": {
+          "id": "WEp1n6IdFVFDVs4F",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        -256
+      ],
+      "id": "33108bc0-9472-4f32-b43c-1181db63c35d",
+      "name": "Ollama Chat Model4",
+      "credentials": {
+        "ollamaApi": {
+          "id": "WEp1n6IdFVFDVs4F",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1712,
+        224
+      ],
+      "id": "ef02e754-d3de-469e-9c0e-b4eb21a2f619",
+      "name": "Ollama Chat Model5",
+      "credentials": {
+        "ollamaApi": {
+          "id": "WEp1n6IdFVFDVs4F",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        448
+      ],
+      "id": "d398238c-fe3d-41f7-9ec3-f30ca9a43f68",
+      "name": "Ollama Chat Model6",
+      "credentials": {
+        "ollamaApi": {
+          "id": "WEp1n6IdFVFDVs4F",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        2592,
+        -256
+      ],
+      "id": "a06fcc37-6c53-4a1d-a94d-7d15c6b2f76a",
+      "name": "Ollama Chat Model7",
+      "credentials": {
+        "ollamaApi": {
+          "id": "WEp1n6IdFVFDVs4F",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// ============================================================\n// AEGIS EVIDENCE OUTPUT PARSER\n// ============================================================\n\nconst raw =\n  item.output ??\n  item.text ??\n  item.response ??\n  \"\";\n\nif (!raw) {\n  throw new Error(\n    \"Evidence Synthesizer returned no output.\"\n  );\n}\n\n// ============================================================\n// EXTRACT JSON\n// ============================================================\n\nfunction parseJson(text) {\n\n  let cleaned = String(text)\n    .replace(/```json/gi, \"\")\n    .replace(/```/g, \"\")\n    .trim();\n\n  // Direct JSON\n  try {\n    return JSON.parse(cleaned);\n  } catch {}\n\n  // Extract JSON object from surrounding text\n  const start = cleaned.indexOf(\"{\");\n  const end = cleaned.lastIndexOf(\"}\");\n\n  if (start === -1 || end === -1 || end <= start) {\n    throw new Error(\n      \"Evidence Synthesizer returned no valid JSON object.\"\n    );\n  }\n\n  const candidate =\n    cleaned.slice(start, end + 1);\n\n  try {\n    return JSON.parse(candidate);\n  } catch (error) {\n    throw new Error(\n      \"Evidence Synthesizer returned invalid JSON: \" +\n      error.message\n    );\n  }\n}\n\nconst parsed = parseJson(raw);\n\n// ============================================================\n// REQUIRED TOP-LEVEL STRUCTURE\n// ============================================================\n\nconst requiredFields = [\n  \"evidence_map\",\n  \"converging_evidence\",\n  \"conflicting_evidence\",\n  \"missing_evidence\",\n  \"candidate_relationships\",\n  \"overall_evidence_confidence\"\n];\n\nfor (const field of requiredFields) {\n  if (!(field in parsed)) {\n    throw new Error(\n      `Evidence Synthesizer output missing required field: ${field}`\n    );\n  }\n}\n\n// ============================================================\n// EVIDENCE MAP\n// ============================================================\n\nif (\n  !parsed.evidence_map ||\n  typeof parsed.evidence_map !== \"object\"\n) {\n  throw new Error(\n    \"evidence_map must be an object.\"\n  );\n}\n\nconst domains = [\n  \"temporal\",\n  \"payment\",\n  \"system\",\n  \"business\"\n];\n\nfor (const domain of domains) {\n\n  if (!(domain in parsed.evidence_map)) {\n    throw new Error(\n      `evidence_map missing required domain: ${domain}`\n    );\n  }\n}\n\n// ============================================================\n// ARRAY VALIDATION\n// ============================================================\n\nconst arrayFields = [\n  \"converging_evidence\",\n  \"conflicting_evidence\",\n  \"missing_evidence\",\n  \"candidate_relationships\"\n];\n\nfor (const field of arrayFields) {\n\n  if (!Array.isArray(parsed[field])) {\n    throw new Error(\n      `${field} must be an array.`\n    );\n  }\n}\n\n// ============================================================\n// CONFIDENCE VALIDATION\n// ============================================================\n\nconst confidence =\n  Number(parsed.overall_evidence_confidence);\n\nif (\n  !Number.isFinite(confidence) ||\n  confidence < 0 ||\n  confidence > 1\n) {\n  throw new Error(\n    \"overall_evidence_confidence must be a number between 0 and 1.\"\n  );\n}\n\n// ============================================================\n// OPTIONAL RELATIONSHIP CONFIDENCE VALIDATION\n// ============================================================\n\n// Do NOT require a specific internal structure.\n// The Day 5 Synthesizer prompt intentionally allows\n// candidate relationships to have flexible contents.\n\nfor (const relationship of parsed.candidate_relationships) {\n\n  if (\n    relationship &&\n    typeof relationship === \"object\" &&\n    \"confidence\" in relationship\n  ) {\n\n    const value = Number(relationship.confidence);\n\n    if (\n      !Number.isFinite(value) ||\n      value < 0 ||\n      value > 1\n    ) {\n      throw new Error(\n        \"candidate_relationship confidence must be between 0 and 1.\"\n      );\n    }\n  }\n\n  if (\n    relationship &&\n    typeof relationship === \"object\" &&\n    \"evidence_strength\" in relationship\n  ) {\n\n    const value =\n      Number(relationship.evidence_strength);\n\n    if (\n      !Number.isFinite(value) ||\n      value < 0 ||\n      value > 1\n    ) {\n      throw new Error(\n        \"candidate_relationship evidence_strength must be between 0 and 1.\"\n      );\n    }\n  }\n}\n\n// ============================================================\n// PRESERVE AEGIS STATE\n// ============================================================\n\nreturn [\n  {\n    json: {\n      ...item,\n\n      evidence_map:\n        parsed.evidence_map,\n\n      converging_evidence:\n        parsed.converging_evidence,\n\n      conflicting_evidence:\n        parsed.conflicting_evidence,\n\n      missing_evidence:\n        parsed.missing_evidence,\n\n      candidate_relationships:\n        parsed.candidate_relationships,\n\n      overall_evidence_confidence:\n        confidence,\n\n      evidence_synthesis:\n        parsed\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        -496
+      ],
+      "id": "9908a273-0745-48b8-a652-1fe800a667fd",
+      "name": "Parse Evidence Output"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"observations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"evidence_analysis\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"hypotheses\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"missing_evidence\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"next_steps\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"overall_evidence_confidence\": {\n      \"type\": \"number\"\n    }\n  },\n  \"required\": [\n    \"observations\",\n    \"evidence_analysis\",\n    \"hypotheses\",\n    \"missing_evidence\",\n    \"next_steps\",\n    \"overall_evidence_confidence\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2672,
+        64
+      ],
+      "id": "cf62d132-9f6c-45e1-8e90-3385cbfced32",
+      "name": "Structured Output Parser",
+      "disabled": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Generate Business Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Business Event": {
+      "main": [
+        [
+          {
+            "node": "Validate Aegis Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Aegis Event": {
+      "main": [
+        [
+          {
+            "node": "Event Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Valid?": {
+      "main": [
+        [
+          {
+            "node": "Event Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Accepted": {
+      "main": [
+        [
+          {
+            "node": "Store Aegis Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Aegis Event": {
+      "main": [
+        [
+          {
+            "node": "Event Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Router": {
+      "main": [
+        [
+          {
+            "node": "Sales Investigation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sales Investigation": {
+      "main": [
+        [
+          {
+            "node": "Collect Sales Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Sales Evidence": {
+      "main": [
+        [
+          {
+            "node": "Calculate Evidence Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Sales AI Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sales AI Analyst": {
+      "main": [
+        [
+          {
+            "node": "Parse Analyst Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Analyst Output": {
+      "main": [
+        [
+          {
+            "node": "Aegis Critic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Aegis Critic",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Evidence Metrics": {
+      "main": [
+        [
+          {
+            "node": "Build Investigation Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aegis Critic": {
+      "main": [
+        [
+          {
+            "node": "Parse Critic Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Critic Output": {
+      "main": [
+        [
+          {
+            "node": "Decision Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Gate": {
+      "main": [
+        []
+      ]
+    },
+    "Aegis Re-Analyst": {
+      "main": [
+        [
+          {
+            "node": "Restore Aegis State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Aegis Re-Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Critic Feedback": {
+      "main": [
+        [
+          {
+            "node": "Increment Iteration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aegis Iteration Guard": {
+      "main": [
+        [
+          {
+            "node": "Iteration Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Build Critic Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Iteration": {
+      "main": [
+        [
+          {
+            "node": "Aegis Iteration Guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Aegis State": {
+      "main": [
+        [
+          {
+            "node": "Parse Analyst Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iteration Router": {
+      "main": [
+        [
+          {
+            "node": "Aegis Re-Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build Investigation Context": {
+      "main": [
+        [
+          {
+            "node": "Aegis Temporal Investigator",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aegis Payment Investigator",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aegis System Investigator",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aegis Business Investigator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aegis System Investigator": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Aegis Temporal Investigator": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aegis Payment Investigator": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Aegis Business Investigator": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Combine Investigations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Investigations": {
+      "main": [
+        [
+          {
+            "node": "Evidence Synthesizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evidence Synthesizer": {
+      "main": [
+        [
+          {
+            "node": "Parse Evidence Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Aegis Temporal Investigator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Aegis Payment Investigator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Aegis System Investigator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Aegis Business Investigator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Evidence Synthesizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Evidence Output": {
+      "main": [
+        [
+          {
+            "node": "Sales AI Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4aa30f15-d67f-4852-a993-a7cf605db783",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "82e399089456ff59706950df580f876bb2a1f50e67c1a58bc112916a9bc9b524"
+  },
+  "nodeGroups": [],
+  "id": "l1jd103hGDRStAQu",
+  "tags": []
+}
